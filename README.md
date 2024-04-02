@@ -1,1 +1,2 @@
 # Sockets
+make all
