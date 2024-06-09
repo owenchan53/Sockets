@@ -84,23 +84,30 @@ void client(const string& server_ip, int port) {
         return;
     }
 
+    vector<double> desiredAngles = {0, 0, 0, 0, 0, 0, 0};
+    vector<double> armState = {0, 0, 0, 0, 0, 0, 0};
+
     while (true) {
+        vector<char> serializedData = serialize(armState);
+        send(sock, serializedData.data(), serializedData.size(), 0);
+
         vector<char> buffer(56);
         int valread = read(sock, buffer.data(), 56);
         if (valread > 0) {
-            vector<double> receivedData = deserialize(buffer);
+            desiredAngles = deserialize(buffer);
+
             auto now = chrono::system_clock::now();
             auto currentTime = chrono::system_clock::to_time_t(now);
             auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()) % 1000;
             tm* localTime = localtime(&currentTime);
 
-        cout << "Data received at: ";
-        cout << put_time(localTime, "%Y-%m-%d %H:%M:%S");
-        cout << '.' << std::setfill('0') << std::setw(3) << ms.count() << ": ";
-        for (double value : receivedData) {
-            cout << value << " ";
-        }
-        cout << endl;
+            cout << "Data received at: ";
+            cout << put_time(localTime, "%Y-%m-%d %H:%M:%S");
+            cout << '.' << std::setfill('0') << std::setw(3) << ms.count() << ": ";
+            for (double value : desiredAngles) { cout << value << " "; }
+            cout << endl << "Arm state: ";
+            for (double value: armState) { cout << value << " "; }
+            cout << endl;
         }
         
     }
