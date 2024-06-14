@@ -1,3 +1,3 @@
 # Sockets
 make all<br>
-C++/MATLAB server and C++ client
+C++ server and C++/Simulink clients
