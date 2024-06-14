@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <chrono>
 #include <ctime>
+#include <thread>
 using namespace std;
 
 // Helper function for htonll and ntohll
@@ -60,6 +61,18 @@ vector<double> deserialize(const vector<char>& serializedData) {
     return data;
 }
 
+void printTimeAndData(const string& prefix, const vector<double>& data) {
+    auto now = chrono::system_clock::now();
+    auto currentTime = chrono::system_clock::to_time_t(now);
+    auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    tm* localTime = localtime(&currentTime);
+
+    cout << prefix << " at: " << put_time(localTime, "%Y-%m-%d %H:%M:%S");
+    cout << '.' << setfill('0') << setw(3) << ms.count() << ": ";
+    for (double value : data) { cout << value << " "; }
+    cout << endl;
+}
+
 void server(int port) {
     int server_fd, arm_socket, simu_socket;
     struct sockaddr_in address;
@@ -94,26 +107,26 @@ void server(int port) {
         perror("accept");
         exit(EXIT_FAILURE);
     }
+
     if ((simu_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
         perror("accept");
         exit(EXIT_FAILURE);
     }
-
-    vector<double> torques(7,0);
+    vector<double> torques(7,2);
     vector<double> armState(7,0);
-    vector<char> buffer(1024);
+    vector<char> buffer(56);
 
     while (true) {
         int valread = read(arm_socket, buffer.data(), buffer.size());
         if (valread > 0) {
             armState = deserialize(buffer);
             printTimeAndData("Arm state received", armState);
-
+  
             vector<char> serializedData = serialize(armState);
             send(simu_socket, serializedData.data(), serializedData.size(), 0);
 
-            valread = read(simu_socket, buffer.data(), buffer.size());
-            if (valread > 0) {
+            int valread1 = read(simu_socket, buffer.data(), buffer.size());
+            if (valread1 > 0) {
                 torques = deserialize(buffer);
                 printTimeAndData("Torques received", torques);
 
@@ -128,18 +141,6 @@ void server(int port) {
     close(arm_socket);
     close(simu_socket);
     close(server_fd);
-}
-
-void printTimeAndData(const string& prefix, const vector<double>& data) {
-    auto now = chrono::system_clock::now();
-    auto currentTime = chrono::system_clock::to_time_t(now);
-    auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()) % 1000;
-    tm* localTime = localtime(&currentTime);
-
-    cout << prefix << " at: " << put_time(localTime, "%Y-%m-%d %H:%M:%S");
-    cout << '.' << setfill('0') << setw(3) << ms.count() << ": ";
-    for (double value : data) { cout << value << " "; }
-    cout << endl;
 }
 
 int main() {

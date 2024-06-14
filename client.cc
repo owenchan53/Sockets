@@ -61,6 +61,18 @@ vector<double> deserialize(const vector<char>& serializedData) {
     return data;
 }
 
+void printTimeAndData(const string& prefix, const vector<double>& data) {
+    auto now = chrono::system_clock::now();
+    auto currentTime = chrono::system_clock::to_time_t(now);
+    auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    tm* localTime = localtime(&currentTime);
+
+    cout << prefix << " at: " << put_time(localTime, "%Y-%m-%d %H:%M:%S");
+    cout << '.' << setfill('0') << setw(3) << ms.count() << ": ";
+    for (double value : data) { cout << value << " "; }
+    cout << endl;
+}
+
 
 void client(const string& server_ip, int port) {
     int sock = 0;
@@ -83,31 +95,21 @@ void client(const string& server_ip, int port) {
         printf("\nConnection Failed \n");
         return;
     }
-
-    vector<double> desiredAngles = {0, 0, 0, 0, 0, 0, 0};
-    vector<double> armState = {0, 0, 0, 0, 0, 0, 0};
+    
+    vector<double> torques = {0, 0, 0, 0, 0, 0, 0};
+    vector<double> armState = {0, 0, 2, 3, 0, 0, 0};
 
     while (true) {
         vector<char> serializedData = serialize(armState);
         send(sock, serializedData.data(), serializedData.size(), 0);
+        printTimeAndData("Arm state sent", armState);
 
         vector<char> buffer(56);
         int valread = read(sock, buffer.data(), 56);
         if (valread > 0) {
-            desiredAngles = deserialize(buffer);
-
-            auto now = chrono::system_clock::now();
-            auto currentTime = chrono::system_clock::to_time_t(now);
-            auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()) % 1000;
-            tm* localTime = localtime(&currentTime);
-
-            cout << "Data received at: ";
-            cout << put_time(localTime, "%Y-%m-%d %H:%M:%S");
-            cout << '.' << std::setfill('0') << std::setw(3) << ms.count() << ": ";
-            for (double value : desiredAngles) { cout << value << " "; }
-            cout << endl << "Arm state: ";
-            for (double value: armState) { cout << value << " "; }
-            cout << endl;
+            torques = deserialize(buffer);
+            printTimeAndData("Torques received", torques);
+            armState[1] += 1;
         }
         
     }

@@ -5,13 +5,13 @@ CC=g++
 CFLAGS=-g -O2 -Wall
 
 # The build target executables
-TARGET_SERVER=multiserver
+TARGET_SERVER=mtserver
 TARGET_CLIENT=client
 
 all: $(TARGET_SERVER) $(TARGET_CLIENT)
 
-$(TARGET_SERVER): multiserver.cc
-	$(CC) $(CFLAGS) -o $(TARGET_SERVER) multiserver.cc
+$(TARGET_SERVER): mtserver.cc
+	$(CC) $(CFLAGS) -o $(TARGET_SERVER) mtserver.cc
 
 $(TARGET_CLIENT): client.cc
 	$(CC) $(CFLAGS) -o $(TARGET_CLIENT) client.cc
